@@ -23,6 +23,10 @@ export interface _SERVICE {
     [string, Uint8Array | number[], string],
     undefined
   >,
+  'verifyFileByHash' : ActorMethod<
+    [string],
+    [] | [{ 'name' : string, 'fileType' : string, 'timestamp' : bigint }]
+  >,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];

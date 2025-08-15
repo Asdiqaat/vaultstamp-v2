@@ -10,6 +10,9 @@ import Text "mo:base/Text";
 import Option "mo:base/Option";
 import Blob "mo:base/Blob";
 import Time "mo:base/Time";
+import SHA256 "mo:sha2/Sha256";
+import hex "mo:hex";
+import Nat8 "mo:base/Nat8";
 
 
 // Define the persistent actor named Filevault
@@ -58,7 +61,11 @@ persistent actor Filevault {
     let userFiles = getUserFiles(msg.caller);
 
     // Calculate the SHA-256 hash of the file content
-    let hash = Nat32.toText(Blob.hash(content)); // Convert the hash to Text format
+    let bytes: [Nat8] = Blob.toArray(content);
+    let digest = SHA256.Digest(#sha256);
+    digest.writeArray(bytes);
+    let hashBytes: [Nat8] = Blob.toArray(digest.sum());
+    let hash: Text = hex.toText(hashBytes);
 
     // Get the current timestamp
     let timestamp = Time.now();
@@ -138,6 +145,28 @@ persistent actor Filevault {
     Option.isSome(HashMap.remove(getUserFiles(msg.caller), thash, name));
   };
 
-  // Get the current timestamp
-  let timestamp = Time.now();
+  // Verify if a file with the given hash exists for the current user
+  public shared (msg) func verifyFileByHash(hash: Text): async ?{ name: Text; fileType: Text; timestamp: Int } {
+    let userFiles = getUserFiles(msg.caller);
+    for (file in HashMap.vals(userFiles)) {
+      if (file.hash == hash) {
+        return ?{
+          name = file.name;
+          fileType = file.fileType;
+          timestamp = file.timestamp;
+        };
+      }
+    };
+    return null;
+  };
+
+  // Converts a Nat32 to [Nat8] in big-endian order
+  func nat32ToBytes(n: Nat32): [Nat8] {
+    [
+      Nat8.fromNat(Nat32.toNat((n >> 24) & 0xff)),
+      Nat8.fromNat(Nat32.toNat((n >> 16) & 0xff)),
+      Nat8.fromNat(Nat32.toNat((n >> 8) & 0xff)),
+      Nat8.fromNat(Nat32.toNat(n & 0xff))
+    ]
+  }
 };

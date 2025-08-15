@@ -200,6 +200,60 @@ function PlagiarismCheck() {
   );
 }
 
+function VerifyFiles() {
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handleVerify(event) {
+    console.log("handleVerify triggered"); // Add this line
+    setError("");
+    setResult(null);
+    setLoading(true);
+
+    const file = event.target.files[0];
+    if (!file) {
+      setError("Please select a file to verify.");
+      setLoading(false);
+      return;
+    }
+
+    const arrayBuffer = await file.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    console.log("Frontend hash:", hashHex);
+
+    try {
+      const res = await window.actor.verifyFileByHash(hashHex);
+      setResult(res);
+    } catch (err) {
+      setError("Verification failed.");
+    }
+    setLoading(false);
+  }
+
+  return (
+    <div className="view active" style={{ marginLeft: "40px" }}>
+      <h2>Verify Document</h2>
+      <p>Check the authenticity of your document by verifying its blockchain timestamp.</p>
+      <input type="file" onChange={handleVerify} />
+      {loading && <p>Verifying...</p>}
+      {error && <p className="status-msg">{error}</p>}
+      {result && result.name ? (
+        <div className="status-msg">
+          <p>✅ Verified!</p>
+          <p>Name: {result.name}</p>
+          <p>Type: {result.fileType}</p>
+          <p>Timestamp: {new Date(Number(result.timestamp) / 1_000_000).toLocaleString()}</p>
+        </div>
+      ) : result === null ? null : (
+        <p className="status-msg">❌ No matching file found.</p>
+      )}
+    </div>
+  );
+}
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authClient, setAuthClient] = useState();
@@ -223,15 +277,16 @@ function App() {
     const authClient = await AuthClient.create();
     const identity = authClient.getIdentity();
     const actor = createActor(canisterId, {
-      agentOptions: {
-        identity
-      }
+      agentOptions: { identity }
     });
     const isAuthenticated = await authClient.isAuthenticated();
 
     setActor(actor);
     setAuthClient(authClient);
     setIsAuthenticated(isAuthenticated);
+
+    // Add this line:
+    window.actor = actor;
   }
 
   async function login() {
@@ -338,6 +393,10 @@ function App() {
           <Route
             path="/plagiarism-check"
             element={<PlagiarismCheck />}
+          />
+          <Route
+            path="/verify-files"
+            element={<VerifyFiles />}
           />
         </Routes>
       </div>

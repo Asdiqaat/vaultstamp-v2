@@ -13,4 +13,10 @@ service : {
        timestamp: int;
      });
   uploadFile: (name: text, content: blob, fileType: text) -> ();
+  verifyFileByHash: (hash: text) ->
+   (opt record {
+          fileType: text;
+          name: text;
+          timestamp: int;
+        });
 }

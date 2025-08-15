@@ -16,6 +16,5 @@ type UserFiles__925617973 = Map__714078229<Text, File__156823506>;
 actor {
   stable var files :
     [var ?(keys : [var ?Principal], values : [var ?UserFiles__925617973],
-           indexes : [var Nat], bounds : [var Nat32])];
-  stable timestamp : Int
+           indexes : [var Nat], bounds : [var Nat32])]
 };
