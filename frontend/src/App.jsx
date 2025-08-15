@@ -2,38 +2,35 @@ import { AuthClient } from '@dfinity/auth-client';
 import { createActor } from 'declarations/backend';
 import { canisterId } from 'declarations/backend/index.js';
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import '../index.css';
 
 const network = process.env.DFX_NETWORK;
 const identityProvider =
   network === 'ic'
-    ? 'https://identity.ic0.app' // Mainnet
-    : 'http://rdmx6-jaaaa-aaaaa-aaadq-cai.localhost:4943'; // Local
+    ? 'https://identity.ic0.app'
+    : 'http://rdmx6-jaaaa-aaaaa-aaadq-cai.localhost:4943';
 
 function Header({ isAuthenticated, login, logout }) {
+  const location = useLocation();
+
   return (
-    <header className="bg-gray-800 text-white py-4">
-      <div className="container mx-auto flex justify-between items-center">
-        <h1 className="text-xl font-bold">FileVault</h1>
-        <nav>
-          <ul className="flex space-x-4">
-            <li><a href="/" className="hover:underline">Home</a></li>
-            <li><a href="/about" className="hover:underline">About</a></li>
-            <li><a href="/uploads" className="hover:underline">Uploads</a></li>
-            <li><a href="/uploaded-files" className="hover:underline">Uploaded Files</a></li>
-            <li><a href="/verify-files" className="hover:underline">Verify Files</a></li>
-            <li><a href="/plagiarism-check" className="hover:underline">AI Plagiarism Check</a></li>
-          </ul>
+    <header className="header">
+      <div className="header-container">
+        <nav className="navbar">
+          <div className="nav-links">
+            <a href="/" className={location.pathname === "/" ? "active" : ""}>Home</a>
+            <a href="/about" className={location.pathname === "/about" ? "active" : ""}>About</a>
+            <a href="/uploads" className={location.pathname === "/uploads" ? "active" : ""}>Uploads</a>
+            <a href="/uploaded-files" className={location.pathname === "/uploaded-files" ? "active" : ""}>Uploaded Files</a>
+            <a href="/verify-files" className={location.pathname === "/verify-files" ? "active" : ""}>Verify Files</a>
+            <a href="/plagiarism-check" className={location.pathname === "/plagiarism-check" ? "active" : ""}>AI Plagiarism Check</a>
+          </div>
         </nav>
         {isAuthenticated ? (
-          <button onClick={logout} className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600">
-            Logout
-          </button>
+          <button onClick={logout} className="sign-in-btn">Logout</button>
         ) : (
-          <button onClick={login} className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600">
-            Login
-          </button>
+          <button onClick={login} className="sign-in-btn">Login</button>
         )}
       </div>
     </header>
@@ -41,35 +38,102 @@ function Header({ isAuthenticated, login, logout }) {
 }
 
 function Home() {
-  return <div className="p-4">Welcome to the Home page!</div>;
+  useEffect(() => {
+    const typewriterElem = document.getElementById('welcomeTypewriter');
+    if (typewriterElem) {
+      const text = "Welcome to VaultStamp";
+      let i = 0;
+      function type() {
+        if (i <= text.length) {
+          typewriterElem.textContent = text.slice(0, i);
+          i++;
+          setTimeout(type, 120);
+        }
+      }
+      type();
+    }
+  }, []);
+
+  return (
+    <main className="home-main">
+      <div className="logo-centered">
+        <img src="../logo.png" alt="VaultStamp Logo" className="logo-big" />
+      </div>
+      <div className="welcome">
+        <h1 className="typewriter" id="welcomeTypewriter"></h1>
+        <p>Protect your original designs with blockchain timestamps and AI-powered plagiarism alerts.</p>
+      </div>
+
+      <div className="action-buttons">
+        <a href="/uploads" className="action-btn">Upload Files</a>
+        <a href="/uploaded-files" className="action-btn">View Uploaded Files</a>
+      </div>
+      <div className="about-preview">
+        <h2>What is VaultStamp?</h2>
+        <p>
+          VaultStamp helps creators prove ownership of their logos, images, and designs.
+          Your upload is hashed, timestamped, and stored on-chain using Internet Computer Protocol (ICP).
+          The integrated AI scans social media for lookalike content — and if it detects a 90%+ match, you'll be notified directly.
+        </p>
+      </div>
+    </main>
+  );
 }
 
 function About() {
-  return <div className="p-4">Learn more about us on the About page.</div>;
+  const [tab, setTab] = useState("vision");
+
+  return (
+    <div className="view active">
+      <section className="tagline-section">
+        <div className="huge-tagline">
+          <h1>Lock your legacy</h1>
+          <h1>Verify With Vault Stamp</h1>
+          <p className="tagline-subtext">VaultStamp isn’t just about verification — it’s about protecting your creativity.</p>
+        </div>
+      </section>
+      <div className="tabs-container">
+        <button className={`tab-button${tab === "vision" ? " active" : ""}`} onClick={() => setTab("vision")}>Vision</button>
+        <button className={`tab-button${tab === "expertise" ? " active" : ""}`} onClick={() => setTab("expertise")}>Expertise</button>
+        <button className={`tab-button${tab === "innovation" ? " active" : ""}`} onClick={() => setTab("innovation")}>Innovation</button>
+      </div>
+      <div className="tab-content-container">
+        <div className={`tab-content${tab === "vision" ? " active" : ""}`}>
+          <p>
+            VaultStamp empowers creators to protect their original designs and ideas. We believe everyone should be able to prove ownership of their digital assets — permanently and transparently. With VaultStamp, your logo or artwork gets a cryptographic timestamp on the blockchain, making idea theft a thing of the past.
+          </p>
+        </div>
+        <div className={`tab-content${tab === "expertise" ? " active" : ""}`}>
+          <p>
+            VaultStamp uses Internet Computer Protocol (ICP) to store secure file fingerprints — not the files themselves. This keeps your data private while proving it’s yours.
+          </p>
+        </div>
+        <div className={`tab-content${tab === "innovation" ? " active" : ""}`}>
+          <p>
+            Our AI-powered system scans the web and social media platforms to detect if your design appears elsewhere. If it finds a match with 90% or higher similarity, it notifies you directly — giving you real-time awareness of potential plagiarism.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function Uploads({ handleFileUpload, errorMessage, uploadSuccessMessage }) {
   return (
-    <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">Upload Files</h2>
+    <div className="view active">
+      <h2 className="text-xl font-bold mb-4">Upload Document</h2>
+      <p>Upload your document to VaultStamp for secure timestamping on the blockchain.</p>
       <div className="mb-4">
         <input
           type="file"
           onChange={handleFileUpload}
-          className="block w-full text-sm text-gray-500 file:mr-4 file:rounded-full file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-blue-700 hover:file:bg-blue-100"
         />
       </div>
-
-      {/* Display error message */}
       {errorMessage && (
-        <div className="mt-4 rounded-md border border-red-400 bg-red-100 p-3 text-red-700">{errorMessage}</div>
+        <div className="status-msg" id="uploadStatus">{errorMessage}</div>
       )}
-
-      {/* Display success message */}
       {uploadSuccessMessage && (
-        <div className="mt-4 rounded-md border border-green-400 bg-green-100 p-3 text-green-700">
-          {uploadSuccessMessage}
-        </div>
+        <div className="status-msg" id="uploadStatus">{uploadSuccessMessage}</div>
       )}
     </div>
   );
@@ -77,11 +141,9 @@ function Uploads({ handleFileUpload, errorMessage, uploadSuccessMessage }) {
 
 function UploadedFiles({ files, handleFileDownload, handleFileDelete }) {
   return (
-    <div className="p-4">
+    <div className="view active">
       <h2 className="text-xl font-bold mb-4">Uploaded Files</h2>
-      <p className="mb-4 text-gray-600">
-        This page displays all the files you have uploaded. You can download or delete files from here.
-      </p>
+      <p>View your previously uploaded documents and their verification status.</p>
       <div className="space-y-2">
         {files.length === 0 ? (
           <>
@@ -90,14 +152,14 @@ function UploadedFiles({ files, handleFileDownload, handleFileDelete }) {
           </>
         ) : (
           files.map((file) => (
-            <div key={file.name} className="flex flex-col rounded-lg bg-white p-3 shadow">
+            <div key={file.name} className="tab-content active">
               <div className="flex items-center justify-between">
                 <span>{file.name}</span>
-                <div className="flex space-x-2">
-                  <button onClick={() => handleFileDownload(file.name)} className="btn">
+                <div className="action-buttons">
+                  <button onClick={() => handleFileDownload(file.name)} className="action-btn">
                     Download
                   </button>
-                  <button onClick={() => handleFileDelete(file.name)} className="btn">
+                  <button onClick={() => handleFileDelete(file.name)} className="action-btn">
                     Delete
                   </button>
                 </div>
@@ -113,6 +175,26 @@ function UploadedFiles({ files, handleFileDownload, handleFileDelete }) {
             </div>
           ))
         )}
+      </div>
+    </div>
+  );
+}
+
+function PlagiarismCheck() {
+  return (
+    <div className="view active">
+      <div className="plagiarism-container">
+        <h1 className="plagiarism-title">AI-Powered Plagiarism Detection</h1>
+        <p className="plagiarism-description">
+          Our advanced AI technology is designed to help you identify potential plagiarism in your designs and documents. Stay tuned as we bring this cutting-edge feature to life, ensuring your intellectual property remains protected.
+        </p>
+      </div>
+      <br /><br />
+      <div className="contact-lawyer-container">
+        <h2 className="contact-lawyer-title">Legal Assistance at Your Fingertips</h2>
+        <p className="contact-lawyer-description">
+          Need professional legal advice? Our platform will soon connect you with experienced intellectual property lawyers to safeguard your rights and resolve disputes effectively.
+        </p>
       </div>
     </div>
   );
@@ -191,10 +273,11 @@ function App() {
 
     const reader = new FileReader();
     reader.onload = async (e) => {
-      const content = e.target.result; // ArrayBuffer
+      const content = e.target.result;
       try {
         await actor.uploadFile(file.name, new Uint8Array(content), file.type);
         setUploadSuccessMessage(`File "${file.name}" uploaded successfully!`);
+        loadFiles();
       } catch (error) {
         console.error("Upload failed:", error);
         setErrorMessage(`Failed to upload ${file.name}.`);
@@ -228,7 +311,7 @@ function App() {
   return (
     <Router>
       <Header isAuthenticated={isAuthenticated} login={login} logout={logout} />
-      <div className="container mx-auto p-4">
+      <div>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
@@ -251,6 +334,10 @@ function App() {
                 handleFileDelete={() => {}}
               />
             }
+          />
+          <Route
+            path="/plagiarism-check"
+            element={<PlagiarismCheck />}
           />
         </Routes>
       </div>
