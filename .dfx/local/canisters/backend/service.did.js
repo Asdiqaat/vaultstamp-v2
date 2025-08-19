@@ -1,6 +1,22 @@
 export const idlFactory = ({ IDL }) => {
   return IDL.Service({
     'checkFileExists' : IDL.Func([IDL.Text], [IDL.Bool], []),
+    'findFilesWithSimilarPhash' : IDL.Func(
+        [IDL.Nat64],
+        [
+          IDL.Vec(
+            IDL.Record({
+              'owner' : IDL.Principal,
+              'hash' : IDL.Text,
+              'name' : IDL.Text,
+              'similarity' : IDL.Nat,
+              'phash' : IDL.Nat64,
+            })
+          ),
+        ],
+        [],
+      ),
+    'getAlerts' : IDL.Func([], [IDL.Vec(IDL.Text)], []),
     'getFiles' : IDL.Func(
         [],
         [
@@ -11,11 +27,13 @@ export const idlFactory = ({ IDL }) => {
               'size' : IDL.Nat,
               'fileType' : IDL.Text,
               'timestamp' : IDL.Int,
+              'phash' : IDL.Nat32,
             })
           ),
         ],
         [],
       ),
+    'sendDummyNotification' : IDL.Func([], [IDL.Text], []),
     'uploadFile' : IDL.Func(
         [IDL.Text, IDL.Vec(IDL.Nat8), IDL.Text],
         [IDL.Text],
@@ -30,6 +48,7 @@ export const idlFactory = ({ IDL }) => {
               'name' : IDL.Text,
               'fileType' : IDL.Text,
               'timestamp' : IDL.Int,
+              'phash' : IDL.Nat32,
             })
           ),
         ],

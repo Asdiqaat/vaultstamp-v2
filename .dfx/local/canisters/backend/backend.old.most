@@ -6,6 +6,7 @@ type File__156823506 =
     hash : Text;
     name : Text;
     owner : Principal;
+    phash : Nat32;
     timestamp : Int;
     totalSize : Nat
   };
@@ -15,6 +16,9 @@ type Map__741714040<K, V> =
          bounds : [var Nat32])];
 type UserFiles__925617973 = Map__714078229<Text, File__156823506>;
 actor {
+  stable var alerts :
+    [var ?(keys : [var ?Principal], values : [var ?[Text]],
+           indexes : [var Nat], bounds : [var Nat32])];
   stable var files :
     [var ?(keys : [var ?Principal], values : [var ?UserFiles__925617973],
            indexes : [var Nat], bounds : [var Nat32])];

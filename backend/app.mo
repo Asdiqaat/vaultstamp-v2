@@ -41,6 +41,8 @@ persistent actor Filevault {
   // Global registry: hash -> File
   private var globalRegistry = HashMap.new<Text, File>();
 
+  private var alerts = HashMap.new<Principal, [Text]>();
+
   // Helper function to retrieve the files associated with a specific user (Principal)
   private func getUserFiles(user: Principal): UserFiles {
     // Check if the user already has files stored
@@ -95,6 +97,18 @@ persistent actor Filevault {
       // Store in user's files
       let userFiles = getUserFiles(msg.caller);
       let _ = HashMap.put(userFiles, thash, name, file);
+
+      // Add notification: file uploaded successfully
+      let alertMsg1 = "File uploaded successfully!";
+      let currentAlerts1 = Option.get(HashMap.get(alerts, phash, msg.caller), []);
+      let updatedAlerts1 = Array.append(currentAlerts1, [alertMsg1]);
+      let _ = HashMap.put(alerts, phash, msg.caller, updatedAlerts1);
+
+      // Add notification: view file details in My Stamps
+      let alertMsg2 = "View the file details in My Stamps section.";
+      let currentAlerts2 = Option.get(HashMap.get(alerts, phash, msg.caller), []);
+      let updatedAlerts2 = Array.append(currentAlerts2, [alertMsg2]);
+      let _ = HashMap.put(alerts, phash, msg.caller, updatedAlerts2);
 
       Debug.print("Backend upload hash: " # hash # " phash: " # Nat32.toText(phash));
       return "File uploaded successfully!";
@@ -181,5 +195,17 @@ persistent actor Filevault {
       Nat8.fromNat(Nat32.toNat((n >> 8) & 0xff)),
       Nat8.fromNat(Nat32.toNat(n & 0xff))
     ]
+  };
+
+  public shared (msg) func sendDummyNotification(): async Text {
+    let alertMsg = "Welcome! This is a dummy notification for your account.";
+    let currentAlerts = Option.get(HashMap.get(alerts, phash, msg.caller), []);
+    let updatedAlerts = Array.append(currentAlerts, [alertMsg]);
+    let _ = HashMap.put(alerts, phash, msg.caller, updatedAlerts);
+    return "Notification sent!";
+  };
+
+  public shared (msg) func getAlerts(): async [Text] {
+    Option.get(HashMap.get(alerts, phash, msg.caller), [])
   }
 };

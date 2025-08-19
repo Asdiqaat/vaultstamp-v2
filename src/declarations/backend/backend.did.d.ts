@@ -4,6 +4,19 @@ import type { IDL } from '@dfinity/candid';
 
 export interface _SERVICE {
   'checkFileExists' : ActorMethod<[string], boolean>,
+  'findFilesWithSimilarPhash' : ActorMethod<
+    [bigint],
+    Array<
+      {
+        'owner' : Principal,
+        'hash' : string,
+        'name' : string,
+        'similarity' : bigint,
+        'phash' : bigint,
+      }
+    >
+  >,
+  'getAlerts' : ActorMethod<[], Array<string>>,
   'getFiles' : ActorMethod<
     [],
     Array<
@@ -13,9 +26,11 @@ export interface _SERVICE {
         'size' : bigint,
         'fileType' : string,
         'timestamp' : bigint,
+        'phash' : number,
       }
     >
   >,
+  'sendDummyNotification' : ActorMethod<[], string>,
   'uploadFile' : ActorMethod<[string, Uint8Array | number[], string], string>,
   'verifyFileByHash' : ActorMethod<
     [string],
@@ -25,6 +40,7 @@ export interface _SERVICE {
         'name' : string,
         'fileType' : string,
         'timestamp' : bigint,
+        'phash' : number,
       }
     ]
   >,

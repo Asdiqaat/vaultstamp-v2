@@ -5,8 +5,6 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import '../index.css';
 
-
-
 const network = process.env.DFX_NETWORK;
 const identityProvider =
   network === 'ic'
@@ -23,10 +21,11 @@ function Header({ isAuthenticated, login, logout }) {
           <div className="nav-links">
             <a href="/" className={location.pathname === "/" ? "active" : ""}>Home</a>
             <a href="/about" className={location.pathname === "/about" ? "active" : ""}>About</a>
-            <a href="/uploads" className={location.pathname === "/uploads" ? "active" : ""}>Uploads</a>
-            <a href="/uploaded-files" className={location.pathname === "/uploaded-files" ? "active" : ""}>Uploaded Files</a>
-            <a href="/verify-files" className={location.pathname === "/verify-files" ? "active" : ""}>Verify Files</a>
+            <a href="/upload" className={location.pathname === "/upload" ? "active" : ""}>Upload</a>
+            <a href="/my-stamps" className={location.pathname === "/my-stamps" ? "active" : ""}>My Stamps</a>
+            <a href="/verify-design" className={location.pathname === "/verify-design" ? "active" : ""}>Verify Design</a>
             <a href="/plagiarism-check" className={location.pathname === "/plagiarism-check" ? "active" : ""}>AI Plagiarism Check</a>
+            <a href="/notifications" className={location.pathname === "/notifications" ? "active" : ""}>Notifications</a>
           </div>
         </nav>
         {isAuthenticated ? (
@@ -67,8 +66,8 @@ function Home() {
       </div>
 
       <div className="action-buttons">
-        <a href="/uploads" className="action-btn">Upload Files</a>
-        <a href="/uploaded-files" className="action-btn">View Uploaded Files</a>
+        <a href="/upload" className="action-btn">Upload Files</a>
+        <a href="/my-stamps" className="action-btn">View My Stamps</a>
       </div>
       <div className="about-preview">
         <h2>What is VaultStamp?</h2>
@@ -144,7 +143,7 @@ function Uploads({ handleFileUpload, errorMessage, uploadSuccessMessage }) {
 function UploadedFiles({ files }) {
   return (
     <div className="view active">
-      <h2 className="text-xl font-bold mb-4">Uploaded Files</h2>
+      <h2 className="text-xl font-bold mb-4">My Stamps</h2>
       <p>View your previously uploaded documents and their verification status.</p>
       <div className="space-y-2">
         {files.length === 0 ? (
@@ -248,7 +247,7 @@ function VerifyFiles() {
 
   return (
     <div>
-      <h2>Verify File</h2>
+      <h2>Verify Design</h2>
       <input type="file" onChange={handleVerify} />
       {loading && <p>Verifying...</p>}
       {checked && !loading && (
@@ -275,6 +274,43 @@ function VerifyFiles() {
         )
       )}
       {error && <p style={{ color: "red" }}>{error}</p>}
+    </div>
+  );
+}
+
+function Notifications({ actor }) {
+  const [alerts, setAlerts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchAlerts() {
+      setLoading(true);
+      try {
+        await actor.sendDummyNotification(); // Send dummy notification
+        const result = await actor.getAlerts(); // Fetch alerts
+        setAlerts(result);
+      } catch (e) {
+        setAlerts(["Failed to fetch notifications."]);
+      }
+      setLoading(false);
+    }
+    if (actor) fetchAlerts();
+  }, [actor]);
+
+  return (
+    <div className="view active">
+      <h2 className="text-xl font-bold mb-4">Notifications</h2>
+      {loading ? (
+        <p>Loading notifications...</p>
+      ) : alerts.length === 0 ? (
+        <p>No notifications yet.</p>
+      ) : (
+        <ul>
+          {alerts.map((alert, idx) => (
+            <li key={idx} className="status-msg">{alert}</li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -388,7 +424,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
           <Route
-            path="/uploads"
+            path="/upload"
             element={
               <Uploads
                 handleFileUpload={handleFileUpload}
@@ -398,7 +434,7 @@ function App() {
             }
           />
           <Route
-            path="/uploaded-files"
+            path="/my-stamps"
             element={
               <UploadedFiles
                 files={files}
@@ -410,8 +446,12 @@ function App() {
             element={<PlagiarismCheck />}
           />
           <Route
-            path="/verify-files"
+            path="/verify-design"
             element={<VerifyFiles />}
+          />
+          <Route
+            path="/notifications"
+            element={<Notifications actor={actor} />}
           />
         </Routes>
       </div>
