@@ -25,7 +25,14 @@ function Header({ isAuthenticated, login, logout }) {
             <a href="/my-stamps" className={location.pathname === "/my-stamps" ? "active" : ""}>My Stamps</a>
             <a href="/verify-design" className={location.pathname === "/verify-design" ? "active" : ""}>Verify Design</a>
             <a href="/plagiarism-check" className={location.pathname === "/plagiarism-check" ? "active" : ""}>AI Plagiarism Check</a>
-            <a href="/notifications" className={location.pathname === "/notifications" ? "active" : ""}>Notifications</a>
+            {/* Replace Notifications link with bell icon button */}
+            <a href="/notifications" style={{ display: "inline-block" }}>
+              <button className="button" style={{ marginLeft: "8px" }}>
+                <svg viewBox="0 0 448 512" className="bell">
+                  <path d="M224 0c-17.7 0-32 14.3-32 32V49.9C119.5 61.4 64 124.2 64 200v33.4c0 45.4-15.5 89.5-43.8 124.9L5.3 377c-5.8 7.2-6.9 17.1-2.9 25.4S14.8 416 24 416H424c9.2 0 17.6-5.3 21.6-13.6s2.9-18.2-2.9-25.4l-14.9-18.6C399.5 322.9 384 278.8 384 233.4V200c0-75.8-55.5-138.6-128-150.1V32c0-17.7-14.3-32-32-32zm0 96h8c57.4 0 104 46.6 104 104v33.4c0 47.9 13.9 94.6 39.7 134.6H72.3C98.1 328 112 281.3 112 233.4V200c0-57.4 46.6-104 104-104h8zm64 352H224 160c0 17 6.7 33.3 18.7 45.3s28.3 18.7 45.3 18.7s33.3-6.7 45.3-18.7s18.7-28.3 18.7-45.3z"></path>
+                </svg>
+              </button>
+            </a>
           </div>
         </nav>
         {isAuthenticated ? (
@@ -246,7 +253,7 @@ function VerifyFiles() {
   }
 
   return (
-    <div>
+    <div style={{ marginLeft: "40px" }}>
       <h2>Verify Design</h2>
       <input type="file" onChange={handleVerify} />
       {loading && <p>Verifying...</p>}
@@ -322,6 +329,7 @@ function App() {
   const [files, setFiles] = useState([]);
   const [errorMessage, setErrorMessage] = useState();
   const [uploadSuccessMessage, setUploadSuccessMessage] = useState("");
+  const [showChat, setShowChat] = useState(false);
 
   useEffect(() => {
     updateActor();
@@ -346,7 +354,6 @@ function App() {
     setAuthClient(authClient);
     setIsAuthenticated(isAuthenticated);
 
-    // Add this line:
     window.actor = actor;
   }
 
@@ -390,7 +397,6 @@ function App() {
     const reader = new FileReader();
     reader.onload = async (e) => {
       const content = e.target.result;
-      // Calculate hash before upload
       const hashBuffer = await crypto.subtle.digest('SHA-256', content);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
@@ -455,7 +461,243 @@ function App() {
           />
         </Routes>
       </div>
+      <ChatIcon onClick={() => setShowChat(true)} />
+      {showChat && <Chatbot onClose={() => setShowChat(false)} />}
     </Router>
+  );
+}
+
+
+// --- Chatbot with fixed size and message bubbles ---
+function Chatbot({ onClose }) {
+  const [categories, setCategories] = useState([]);
+  const [history, setHistory] = useState([
+    { type: "system", text: "👋 Which category do you want to know about?" }
+  ]);
+  const [step, setStep] = useState("category");
+  const [selectedCategoryIdx, setSelectedCategoryIdx] = useState(null);
+
+  useEffect(() => {
+    fetch('/questions.json')
+      .then(res => res.json())
+      .then(data => {
+        const validCategories = (data.categories || []).filter(
+          cat => cat && cat.name && Array.isArray(cat.questions) && cat.questions.length > 0
+        );
+        setCategories(validCategories);
+      });
+  }, []);
+
+  function handleCategory(idx) {
+    setSelectedCategoryIdx(idx);
+    setHistory(h => [
+      ...h,
+      { type: "user", text: categories[idx].name },
+      { type: "system", text: "Choose a question you have:" }
+    ]);
+    setStep("question");
+  }
+
+  function handleQuestion(idx) {
+    const q = categories[selectedCategoryIdx].questions[idx];
+    setHistory(h => [
+      ...h,
+      { type: "user", text: q.q },
+      { type: "system", text: q.a }
+    ]);
+    setStep("answer");
+  }
+
+  function handleBack() {
+    setHistory([
+      { type: "system", text: "👋 Which category do you want to know about?" }
+    ]);
+    setStep("category");
+    setSelectedCategoryIdx(null);
+  }
+
+  // Helper for grid layout: chunk array into rows of 2
+  function chunk(arr) {
+    const out = [];
+    for (let i = 0; i < arr.length; i += 2) out.push(arr.slice(i, i + 2));
+    return out;
+  }
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        bottom: "64px",
+        right: "64px",
+        width: "320px",
+        height: "420px",
+        background: "#fff",
+        borderRadius: "16px",
+        boxShadow: "0 4px 24px rgba(0,0,0,0.18)",
+        zIndex: 1001,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden"
+      }}
+    >
+      <div style={{
+        position: "relative",
+        padding: "12px 16px",
+        borderBottom: "1px solid #eee",
+        fontWeight: "bold",
+        color: "#a259f7",
+        background: "#f8f6fc",
+        fontSize: "15px"
+      }}>
+        VaultStamp Chatbot
+        <button
+          style={{
+            position: "absolute",
+            top: "10px",
+            right: "10px",
+            background: "#a259f7",
+            color: "#fff",
+            border: "none",
+            borderRadius: "50%",
+            padding: "2px 8px",
+            cursor: "pointer",
+            fontWeight: "bold",
+            fontSize: "16px",
+            width: "28px",
+            height: "28px",
+            lineHeight: "18px"
+          }}
+          onClick={onClose}
+          aria-label="Close"
+        >
+          ×
+        </button>
+      </div>
+      <div style={{
+        flex: 1,
+        padding: "12px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "8px",
+        background: "#f8f6fc",
+        overflowY: "auto"
+      }}>
+        {history.map((msg, idx) => (
+          <div
+            key={idx}
+            style={{
+              alignSelf: msg.type === "system" ? "flex-start" : "flex-end",
+              background: msg.type === "system" ? "#fff" : "#a259f7",
+              color: msg.type === "system" ? "#222" : "#fff",
+              borderRadius: "12px",
+              padding: "8px 14px",
+              marginBottom: "2px",
+              maxWidth: "80%",
+              fontSize: "14px",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.07)"
+            }}
+          >
+            {msg.text}
+          </div>
+        ))}
+        {step === "category" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "4px" }}>
+            {chunk(categories).map((row, rIdx) => (
+              <div key={rIdx} style={{ display: "flex", gap: "8px" }}>
+                {row.map((cat, idx) => (
+                  <div
+                    key={cat.name || idx}
+                    style={{
+                      flex: 1,
+                      background: "#a259f7",
+                      borderRadius: "12px",
+                      padding: "8px 10px",
+                      color: "#fff",
+                      fontWeight: "bold",
+                      cursor: "pointer",
+                      textAlign: "center",
+                      fontSize: "13px",
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.07)"
+                    }}
+                    onClick={() => handleCategory(rIdx * 2 + idx)}
+                  >
+                    {cat.name}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+        {step === "question" && selectedCategoryIdx !== null && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "4px" }}>
+            {chunk(categories[selectedCategoryIdx].questions).map((row, rIdx) => (
+              <div key={rIdx} style={{ display: "flex", gap: "8px" }}>
+                {row.map((q, idx) => (
+                  <div
+                    key={q.q || idx}
+                    style={{
+                      flex: 1,
+                      background: "#a259f7",
+                      borderRadius: "12px",
+                      padding: "8px 10px",
+                      color: "#fff",
+                      fontWeight: "bold",
+                      cursor: "pointer",
+                      textAlign: "center",
+                      fontSize: "13px",
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.07)"
+                    }}
+                    onClick={() => handleQuestion(rIdx * 2 + idx)}
+                  >
+                    {q.q}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+        {step === "answer" && (
+          <button
+            style={{
+              alignSelf: "flex-end",
+              background: "#a259f7",
+              color: "#fff",
+              border: "none",
+              borderRadius: "8px",
+              padding: "4px 12px",
+              cursor: "pointer",
+              fontWeight: "bold",
+              marginTop: "4px",
+              fontSize: "14px"
+            }}
+            onClick={handleBack}
+          >
+            Back
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ChatIcon({ onClick }) {
+  return (
+    <button
+      className="chatBtn"
+      style={{
+        position: "fixed",
+        bottom: "64px",
+        right: "64px",
+        zIndex: 1000,
+      }}
+      onClick={onClick}
+      aria-label="Open Chat"
+    >
+      <svg height="1.6em" fill="white" xmlSpace="preserve" viewBox="0 0 1000 1000">
+        <path d="M881.1,720.5H434.7L173.3,941V720.5h-54.4C58.8,720.5,10,671.1,10,610.2v-441C10,108.4,58.8,59,118.9,59h762.2C941.2,59,990,108.4,990,169.3v441C990,671.1,941.2,720.5,881.1,720.5L881.1,720.5z M935.6,169.3c0-30.4-24.4-55.2-54.5-55.2H118.9c-30.1,0-54.5,24.7-54.5,55.2v441c0,30.4,24.4,55.1,54.5,55.1h54.4h54.4v110.3l163.3-110.2H500h381.1c30.1,0,54.5-24.7,54.5-55.1V169.3L935.6,169.3z M717.8,444.8c-30.1,0-54.4-24.7-54.4-55.1c0-30.4,24.3-55.2,54.4-55.2c30.1,0,54.5,24.7,54.5,55.2C772.2,420.2,747.8,444.8,717.8,444.8L717.8,444.8z M500,444.8c-30.1,0-54.4-24.7-54.4-55.1c0-30.4,24.3-55.2,54.4-55.2c30.1,0,54.4,24.7,54.4,55.2C554.4,420.2,530.1,444.8,500,444.8L500,444.8z M282.2,444.8c-30.1,0-54.5-24.7-54.5-55.1c0-30.4,24.4-55.2,54.5-55.2c30.1,0,54.4,24.7,54.4,55.2C336.7,420.2,312.3,444.8,282.2,444.8L282.2,444.8z"></path>
+      </svg>
+      <span className="tooltip">Chat</span>
+    </button>
   );
 }
 

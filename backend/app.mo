@@ -149,7 +149,7 @@ persistent actor Filevault {
     var x = a ^ b; // XOR to get differing bits
     var dist: Nat = 0;
     while (x != 0) {
-      dist += x & 1;
+      dist += Nat64.toNat(x & 1);
       x >>= 1;
     };
     dist

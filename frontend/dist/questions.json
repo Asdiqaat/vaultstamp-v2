@@ -1,0 +1,94 @@
+{
+  "categories": [
+    {
+      "name": "Uploading & Storage",
+      "questions": [
+        {
+          "q": "How do I upload?",
+          "a": "Click the Upload button, choose your file, and submit. VaultStamp will generate a unique SHA-256 hash and timestamp."
+        },
+        {
+          "q": "Where is my file?",
+          "a": "Your file is not stored on VaultStamp. Only the hash + fingerprint (pHash + embeddings) are saved. Optionally, files can be pinned on IPFS."
+        },
+        {
+          "q": "Why avoid file storage?",
+          "a": "Storing raw files is heavy and costly. Hashes + pHash are enough for proof and plagiarism checks."
+        }
+      ]
+    },
+    {
+      "name": "Legal Guidance",
+      "questions": [
+        {
+          "q": "What if design stolen?",
+          "a": "VaultStamp gives timestamped proof of originality you can use in disputes."
+        },
+        {
+          "q": "Does this replace copyright?",
+          "a": "No. VaultStamp strengthens your claim, but official copyright is separate."
+        },
+        {
+          "q": "What if plagiarism found?",
+          "a": "VaultStamp can notify you and generate a legal-style summary of next steps."
+        }
+      ]
+    },
+    {
+      "name": "Plagiarism Detection",
+      "questions": [
+        {
+          "q": "How is plagiarism detected?",
+          "a": "We use: 1) SHA-256 for exact matches, 2) pHash for near-duplicates, 3) AI embeddings for conceptual similarity."
+        },
+        {
+          "q": "What is a pHash?",
+          "a": "A perceptual hash (64 bits) that makes a fingerprint of an image. Similar images have close pHashes."
+        },
+        {
+          "q": "What is similarity threshold?",
+          "a": "If pHash distance is <10, we flag it as possible plagiarism."
+        },
+        {
+          "q": "Does it scan internet?",
+          "a": "Not yet. Currently, VaultStamp checks only uploaded files. Internet-wide search may come later via APIs."
+        }
+      ]
+    },
+    {
+      "name": "Wallet & Identity",
+      "questions": [
+        {
+          "q": "How do I login?",
+          "a": "Log in using Internet Identity or connect your Phantom Wallet."
+        },
+        {
+          "q": "Why use a wallet?",
+          "a": "It ties uploads to a verified identity, making them tamper-proof."
+        },
+        {
+          "q": "What if wallet lost?",
+          "a": "Uploads remain safe, but you’ll need recovery or a new wallet to access them."
+        }
+      ]
+    },
+    
+    {
+      "name": "About VaultStamp",
+      "questions": [
+        {
+          "q": "What is VaultStamp for?",
+          "a": "A decentralized platform to prove originality and detect plagiarism with blockchain + AI."
+        },
+        {
+          "q": "Why not Google Drive?",
+          "a": "VaultStamp adds timestamps, plagiarism checks, and ownership proof, unlike normal storage."
+        },
+        {
+          "q": "Is VaultStamp free now?",
+          "a": "Yes for now. Premium features like internet-wide search may cost later."
+        }
+      ]
+    }
+  ]
+}
