@@ -16,10 +16,7 @@ export interface _SERVICE {
       }
     >
   >,
-  'uploadFile' : ActorMethod<
-    [string, Uint8Array | number[], string],
-    undefined
-  >,
+  'uploadFile' : ActorMethod<[string, Uint8Array | number[], string], string>,
   'verifyFileByHash' : ActorMethod<
     [string],
     [] | [

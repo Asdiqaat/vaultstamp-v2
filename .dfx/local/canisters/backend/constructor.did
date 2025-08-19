@@ -9,7 +9,7 @@ service : {
        size: nat;
        timestamp: int;
      });
-  uploadFile: (name: text, content: blob, fileType: text) -> ();
+  uploadFile: (name: text, content: blob, fileType: text) -> (text);
   verifyFileByHash: (hash: text) ->
    (opt record {
           fileType: text;

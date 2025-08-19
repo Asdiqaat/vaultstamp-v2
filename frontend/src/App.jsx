@@ -361,12 +361,19 @@ function App() {
       console.log("Upload hash:", hashHex);
 
       try {
-        await actor.uploadFile(file.name, new Uint8Array(content), file.type);
-        setUploadSuccessMessage(`File "${file.name}" uploaded successfully!`);
-        loadFiles();
+        const result = await actor.uploadFile(file.name, new Uint8Array(content), file.type);
+        if (result === "File uploaded successfully!") {
+          setUploadSuccessMessage(`File "${file.name}" uploaded successfully!`);
+          setErrorMessage("");
+          loadFiles();
+        } else {
+          setErrorMessage(result);
+          setUploadSuccessMessage("");
+        }
       } catch (error) {
         console.error("Upload failed:", error);
         setErrorMessage(`Failed to upload ${file.name}.`);
+        setUploadSuccessMessage("");
       }
     };
 

@@ -16,7 +16,11 @@ export const idlFactory = ({ IDL }) => {
         ],
         [],
       ),
-    'uploadFile' : IDL.Func([IDL.Text, IDL.Vec(IDL.Nat8), IDL.Text], [], []),
+    'uploadFile' : IDL.Func(
+        [IDL.Text, IDL.Vec(IDL.Nat8), IDL.Text],
+        [IDL.Text],
+        [],
+      ),
     'verifyFileByHash' : IDL.Func(
         [IDL.Text],
         [

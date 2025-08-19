@@ -61,7 +61,7 @@ persistent actor Filevault {
   };
 
   // Public method to upload an entire file at once
-  public shared (msg) func uploadFile(name: Text, content: Blob, fileType: Text): async () {
+  public shared (msg) func uploadFile(name: Text, content: Blob, fileType: Text): async Text {
     // Calculate the SHA-256 hash of the file content
     let bytes: [Nat8] = Blob.toArray(content);
     let digest = SHA256.Digest(#sha256);
@@ -72,48 +72,29 @@ persistent actor Filevault {
     // Get the current timestamp
     let timestamp = Time.now();
 
-    let file: File = {
-      name = name;               // Set the file name
-      content = content;         // Store the file content
-      totalSize = content.size(); // Calculate and store the file size
-      fileType = fileType;       // Store the file type (MIME type)
-      hash = hash;               // Store the hash of the file content
-      timestamp = timestamp;     // Store the upload timestamp
-      owner = msg.caller;       // Set the file owner to the current user
-    };
-
-    // Store in global registry
-    let _ = HashMap.put(globalRegistry, thash, hash, file);
-
-    // Retrieve the user's files HashMap
-    let userFiles = getUserFiles(msg.caller);
-
-    // Check if a file with the given name already exists
-    switch (HashMap.get(userFiles, thash, name)) {
-      case null {
-        // If the file does not exist, create a new entry in the user's files HashMap
-        let _ = HashMap.put(userFiles, thash, name, file);
+    if (Option.isSome(HashMap.get(globalRegistry, thash, hash))) {
+      return "This file was already uploaded";
+    } else {
+      let file: File = {
+        name = name;
+        content = content;
+        totalSize = content.size();
+        fileType = fileType;
+        hash = hash;
+        timestamp = timestamp;
+        owner = msg.caller;
       };
-      case (?existingFile) {
-        // If the file already exists, overwrite it with the new content
-        let _ = HashMap.put(
-          userFiles,
-          thash,
-          name,
-          {
-            name = name;               // Set the file name
-            content = content;         // Overwrite the file content
-            totalSize = content.size(); // Update the file size
-            fileType = fileType;       // Update the file type (MIME type)
-            hash = hash;               // Update the hash of the file content
-            timestamp = timestamp;     // Update the upload timestamp
-            owner = msg.caller;       // Update the file owner to the current user
-          }
-        );
-      };
-    };
 
-    Debug.print("Backend upload hash: " # hash);
+      // Store in global registry
+      let _ = HashMap.put(globalRegistry, thash, hash, file);
+
+      // Store in user's files
+      let userFiles = getUserFiles(msg.caller);
+      let _ = HashMap.put(userFiles, thash, name, file);
+
+      Debug.print("Backend upload hash: " # hash);
+      return "File uploaded successfully!";
+    }
   };
 
   // Public method to retrieve a list of all files for the current user
