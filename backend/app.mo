@@ -98,18 +98,6 @@ persistent actor Filevault {
       let userFiles = getUserFiles(msg.caller);
       let _ = HashMap.put(userFiles, thash, name, file);
 
-      // Add notification: file uploaded successfully
-      let alertMsg1 = "File uploaded successfully!";
-      let currentAlerts1 = Option.get(HashMap.get(alerts, phash, msg.caller), []);
-      let updatedAlerts1 = Array.append(currentAlerts1, [alertMsg1]);
-      let _ = HashMap.put(alerts, phash, msg.caller, updatedAlerts1);
-
-      // Add notification: view file details in My Stamps
-      let alertMsg2 = "View the file details in My Stamps section.";
-      let currentAlerts2 = Option.get(HashMap.get(alerts, phash, msg.caller), []);
-      let updatedAlerts2 = Array.append(currentAlerts2, [alertMsg2]);
-      let _ = HashMap.put(alerts, phash, msg.caller, updatedAlerts2);
-
       Debug.print("Backend upload hash: " # hash # " phash: " # Nat32.toText(phash));
       return "File uploaded successfully!";
     }
@@ -161,7 +149,7 @@ persistent actor Filevault {
     var x = a ^ b; // XOR to get differing bits
     var dist: Nat = 0;
     while (x != 0) {
-      dist += Nat64.toNat(x & 1);
+      dist += x & 1;
       x >>= 1;
     };
     dist
