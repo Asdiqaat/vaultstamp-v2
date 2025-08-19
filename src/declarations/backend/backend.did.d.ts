@@ -4,9 +4,6 @@ import type { IDL } from '@dfinity/candid';
 
 export interface _SERVICE {
   'checkFileExists' : ActorMethod<[string], boolean>,
-  'deleteFile' : ActorMethod<[string], boolean>,
-  'getFile' : ActorMethod<[string], [] | [Uint8Array | number[]]>,
-  'getFileType' : ActorMethod<[string], [] | [string]>,
   'getFiles' : ActorMethod<
     [],
     Array<
@@ -25,7 +22,14 @@ export interface _SERVICE {
   >,
   'verifyFileByHash' : ActorMethod<
     [string],
-    [] | [{ 'name' : string, 'fileType' : string, 'timestamp' : bigint }]
+    [] | [
+      {
+        'owner' : Principal,
+        'name' : string,
+        'fileType' : string,
+        'timestamp' : bigint,
+      }
+    ]
   >,
 }
 export declare const idlFactory: IDL.InterfaceFactory;

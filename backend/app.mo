@@ -13,6 +13,7 @@ import Time "mo:base/Time";
 import SHA256 "mo:sha2/Sha256";
 import hex "mo:hex";
 import Nat8 "mo:base/Nat8";
+import Debug "mo:base/Debug";
 
 
 // Define the persistent actor named Filevault
@@ -26,6 +27,7 @@ persistent actor Filevault {
     fileType: Text;   // The MIME type of the file (e.g., "image/png")
     hash: Text;       // The SHA-256 hash of the file content
     timestamp: Int;   // The timestamp when the file was uploaded
+    owner: Principal; // The owner of the file (user principal)
   };
 
   // Define a data type for storing files associated with a user principal
@@ -33,6 +35,9 @@ persistent actor Filevault {
 
   // HashMap to store all user data, where each user (Principal) has their own UserFiles
   private var files = HashMap.new<Principal, UserFiles>();
+
+  // Global registry: hash -> File
+  private var globalRegistry = HashMap.new<Text, File>();
 
   // Helper function to retrieve the files associated with a specific user (Principal)
   private func getUserFiles(user: Principal): UserFiles {
@@ -57,9 +62,6 @@ persistent actor Filevault {
 
   // Public method to upload an entire file at once
   public shared (msg) func uploadFile(name: Text, content: Blob, fileType: Text): async () {
-    // Retrieve the user's files HashMap
-    let userFiles = getUserFiles(msg.caller);
-
     // Calculate the SHA-256 hash of the file content
     let bytes: [Nat8] = Blob.toArray(content);
     let digest = SHA256.Digest(#sha256);
@@ -70,18 +72,27 @@ persistent actor Filevault {
     // Get the current timestamp
     let timestamp = Time.now();
 
+    let file: File = {
+      name = name;               // Set the file name
+      content = content;         // Store the file content
+      totalSize = content.size(); // Calculate and store the file size
+      fileType = fileType;       // Store the file type (MIME type)
+      hash = hash;               // Store the hash of the file content
+      timestamp = timestamp;     // Store the upload timestamp
+      owner = msg.caller;       // Set the file owner to the current user
+    };
+
+    // Store in global registry
+    let _ = HashMap.put(globalRegistry, thash, hash, file);
+
+    // Retrieve the user's files HashMap
+    let userFiles = getUserFiles(msg.caller);
+
     // Check if a file with the given name already exists
     switch (HashMap.get(userFiles, thash, name)) {
       case null {
         // If the file does not exist, create a new entry in the user's files HashMap
-        let _ = HashMap.put(userFiles, thash, name, {
-          name = name;               // Set the file name
-          content = content;         // Store the file content
-          totalSize = content.size(); // Calculate and store the file size
-          fileType = fileType;       // Store the file type (MIME type)
-          hash = hash;               // Store the hash of the file content
-          timestamp = timestamp;     // Store the upload timestamp
-        });
+        let _ = HashMap.put(userFiles, thash, name, file);
       };
       case (?existingFile) {
         // If the file already exists, overwrite it with the new content
@@ -96,10 +107,13 @@ persistent actor Filevault {
             fileType = fileType;       // Update the file type (MIME type)
             hash = hash;               // Update the hash of the file content
             timestamp = timestamp;     // Update the upload timestamp
+            owner = msg.caller;       // Update the file owner to the current user
           }
         );
       };
     };
+
+    Debug.print("Backend upload hash: " # hash);
   };
 
   // Public method to retrieve a list of all files for the current user
@@ -121,43 +135,26 @@ persistent actor Filevault {
     );
   };
 
-  // Public method to retrieve the content of a specific file
-  public shared (msg) func getFile(name: Text): async ?Blob {
-    // Check if the file exists in the user's files HashMap
-    switch (HashMap.get(getUserFiles(msg.caller), thash, name)) {
-      case null null; // If the file does not exist, return null
-      case (?file) ?file.content; // If the file exists, return its content
-    };
-  };
-
-  // Public method to retrieve the MIME type of a specific file
-  public shared (msg) func getFileType(name: Text): async ?Text {
-    // Check if the file exists in the user's files HashMap
-    switch (HashMap.get(getUserFiles(msg.caller), thash, name)) {
-      case null null; // If the file does not exist, return null
-      case (?file) ?file.fileType; // If the file exists, return its MIME type
-    };
-  };
-
-  // Public method to delete a specific file
-  public shared (msg) func deleteFile(name: Text): async Bool {
-    // Remove the file from the user's files HashMap and return whether the operation was successful
-    Option.isSome(HashMap.remove(getUserFiles(msg.caller), thash, name));
-  };
+ 
 
   // Verify if a file with the given hash exists for the current user
-  public shared (msg) func verifyFileByHash(hash: Text): async ?{ name: Text; fileType: Text; timestamp: Int } {
-    let userFiles = getUserFiles(msg.caller);
-    for (file in HashMap.vals(userFiles)) {
-      if (file.hash == hash) {
-        return ?{
+  public shared (msg) func verifyFileByHash(hash: Text): async ?{ name: Text; fileType: Text; timestamp: Int; owner: Principal } {
+    Debug.print("Backend verify hash: " # hash);
+    switch (HashMap.get(globalRegistry, thash, hash)) {
+      case null {
+        Debug.print("No match for hash: " # hash);
+        null;
+      };
+      case (?file) {
+        Debug.print("Match found for hash: " # hash);
+        ?{
           name = file.name;
           fileType = file.fileType;
           timestamp = file.timestamp;
+          owner = file.owner;
         };
-      }
-    };
-    return null;
+      };
+    }
   };
 
   // Converts a Nat32 to [Nat8] in big-endian order

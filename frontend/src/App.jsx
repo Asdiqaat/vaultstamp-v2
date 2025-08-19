@@ -5,6 +5,8 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import '../index.css';
 
+
+
 const network = process.env.DFX_NETWORK;
 const identityProvider =
   network === 'ic'
@@ -139,7 +141,7 @@ function Uploads({ handleFileUpload, errorMessage, uploadSuccessMessage }) {
   );
 }
 
-function UploadedFiles({ files, handleFileDownload, handleFileDelete }) {
+function UploadedFiles({ files }) {
   return (
     <div className="view active">
       <h2 className="text-xl font-bold mb-4">Uploaded Files</h2>
@@ -155,14 +157,12 @@ function UploadedFiles({ files, handleFileDownload, handleFileDelete }) {
             <div key={file.name} className="tab-content active">
               <div className="flex items-center justify-between">
                 <span>{file.name}</span>
-                <div className="action-buttons">
-                  <button onClick={() => handleFileDownload(file.name)} className="action-btn">
-                    Download
-                  </button>
-                  <button onClick={() => handleFileDelete(file.name)} className="action-btn">
-                    Delete
-                  </button>
-                </div>
+                <button
+                  onClick={() => navigator.clipboard.writeText(file.hash)}
+                  style={{ marginLeft: "10px" }}
+                >
+                  Copy Hash
+                </button>
               </div>
               <div className="mt-2 text-sm text-gray-600">
                 <div>Hash: <span className="font-mono">{file.hash}</span></div>
@@ -204,17 +204,19 @@ function VerifyFiles() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checked, setChecked] = useState(false);
 
   async function handleVerify(event) {
-    console.log("handleVerify triggered"); // Add this line
     setError("");
     setResult(null);
     setLoading(true);
+    setChecked(false);
 
     const file = event.target.files[0];
     if (!file) {
       setError("Please select a file to verify.");
       setLoading(false);
+      setChecked(true);
       return;
     }
 
@@ -223,33 +225,56 @@ function VerifyFiles() {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     console.log("Frontend hash:", hashHex);
+    console.log("Verifying hash:", hashHex);
 
     try {
       const res = await window.actor.verifyFileByHash(hashHex);
-      setResult(res);
+      setChecked(true);
+      if (!res) {
+        setResult(null);
+        setError("No matching file found.");
+      } else {
+        setResult(res);
+        console.log("Verification result:", res);
+        setError("");
+      }
     } catch (err) {
       setError("Verification failed.");
+      setResult(null);
+      setChecked(true);
     }
     setLoading(false);
   }
 
   return (
-    <div className="view active" style={{ marginLeft: "40px" }}>
-      <h2>Verify Document</h2>
-      <p>Check the authenticity of your document by verifying its blockchain timestamp.</p>
+    <div>
+      <h2>Verify File</h2>
       <input type="file" onChange={handleVerify} />
       {loading && <p>Verifying...</p>}
-      {error && <p className="status-msg">{error}</p>}
-      {result && result.name ? (
-        <div className="status-msg">
-          <p>✅ Verified!</p>
-          <p>Name: {result.name}</p>
-          <p>Type: {result.fileType}</p>
-          <p>Timestamp: {new Date(Number(result.timestamp) / 1_000_000).toLocaleString()}</p>
-        </div>
-      ) : result === null ? null : (
-        <p className="status-msg">❌ No matching file found.</p>
+      {checked && !loading && (
+        Array.isArray(result) && result.length > 0 && result[0].name ? (
+          <div>
+            <h3>File Verified!</h3>
+            {result.map((file, idx) => (
+              <div key={idx}>
+                <p>Name: {file.name}</p>
+                <p>Type: {file.fileType}</p>
+                <p>
+                  Timestamp: {file.timestamp
+                    ? new Date(Number(file.timestamp) / 1_000_000).toLocaleString()
+                    : "N/A"}
+                </p>
+                <p>Owner: {file.owner.toString ? file.owner.toString() : String(file.owner)}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div>
+            <h3>No matching file found.</h3>
+          </div>
+        )
       )}
+      {error && <p style={{ color: "red" }}>{error}</p>}
     </div>
   );
 }
@@ -329,6 +354,12 @@ function App() {
     const reader = new FileReader();
     reader.onload = async (e) => {
       const content = e.target.result;
+      // Calculate hash before upload
+      const hashBuffer = await crypto.subtle.digest('SHA-256', content);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      console.log("Upload hash:", hashHex);
+
       try {
         await actor.uploadFile(file.name, new Uint8Array(content), file.type);
         setUploadSuccessMessage(`File "${file.name}" uploaded successfully!`);
@@ -340,27 +371,6 @@ function App() {
     };
 
     reader.readAsArrayBuffer(file);
-  }
-
-  async function handleFileDownload(name) {
-    try {
-      const fileContent = await actor.getFile(name);
-      if (!fileContent) {
-        setErrorMessage(`File "${name}" not found.`);
-        return;
-      }
-
-      const blob = new Blob([new Uint8Array(fileContent)], { type: "application/octet-stream" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = name;
-      link.click();
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Download failed:", error);
-      setErrorMessage(`Failed to download ${name}.`);
-    }
   }
 
   return (
@@ -385,8 +395,6 @@ function App() {
             element={
               <UploadedFiles
                 files={files}
-                handleFileDownload={handleFileDownload}
-                handleFileDelete={() => {}}
               />
             }
           />

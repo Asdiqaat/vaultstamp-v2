@@ -1,8 +1,5 @@
 service : {
   checkFileExists: (name: text) -> (bool);
-  deleteFile: (name: text) -> (bool);
-  getFile: (name: text) -> (opt blob);
-  getFileType: (name: text) -> (opt text);
   getFiles: () ->
    (vec
      record {
@@ -17,6 +14,7 @@ service : {
    (opt record {
           fileType: text;
           name: text;
+          owner: principal;
           timestamp: int;
         });
 }

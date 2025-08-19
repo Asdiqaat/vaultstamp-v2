@@ -1,9 +1,6 @@
 export const idlFactory = ({ IDL }) => {
   return IDL.Service({
     'checkFileExists' : IDL.Func([IDL.Text], [IDL.Bool], []),
-    'deleteFile' : IDL.Func([IDL.Text], [IDL.Bool], []),
-    'getFile' : IDL.Func([IDL.Text], [IDL.Opt(IDL.Vec(IDL.Nat8))], []),
-    'getFileType' : IDL.Func([IDL.Text], [IDL.Opt(IDL.Text)], []),
     'getFiles' : IDL.Func(
         [],
         [
@@ -25,6 +22,7 @@ export const idlFactory = ({ IDL }) => {
         [
           IDL.Opt(
             IDL.Record({
+              'owner' : IDL.Principal,
               'name' : IDL.Text,
               'fileType' : IDL.Text,
               'timestamp' : IDL.Int,
