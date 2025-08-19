@@ -14,18 +14,20 @@ import SHA256 "mo:sha2/Sha256";
 import hex "mo:hex";
 import Nat8 "mo:base/Nat8";
 import Debug "mo:base/Debug";
+import Nat64 "mo:base/Nat64";
 
 
 // Define the persistent actor named Filevault
 persistent actor Filevault {
 
-  // Define a data type for a file's metadata and content
+  // Updated File type with phash
   type File = {
     name: Text;       // The name of the file
     content: Blob;    // The entire file content as binary data
     totalSize: Nat;   // The total size of the file in bytes
     fileType: Text;   // The MIME type of the file (e.g., "image/png")
     hash: Text;       // The SHA-256 hash of the file content
+    phash: Nat32;         // Principal hash of the owner
     timestamp: Int;   // The timestamp when the file was uploaded
     owner: Principal; // The owner of the file (user principal)
   };
@@ -71,9 +73,10 @@ persistent actor Filevault {
 
     // Get the current timestamp
     let timestamp = Time.now();
+    let phash: Nat32 = Principal.hash(msg.caller);
 
     if (Option.isSome(HashMap.get(globalRegistry, thash, hash))) {
-      return "This file was already uploaded";
+      return "This file already exists and is owned by another user.";
     } else {
       let file: File = {
         name = name;
@@ -81,6 +84,7 @@ persistent actor Filevault {
         totalSize = content.size();
         fileType = fileType;
         hash = hash;
+        phash = phash;
         timestamp = timestamp;
         owner = msg.caller;
       };
@@ -92,23 +96,24 @@ persistent actor Filevault {
       let userFiles = getUserFiles(msg.caller);
       let _ = HashMap.put(userFiles, thash, name, file);
 
-      Debug.print("Backend upload hash: " # hash);
+      Debug.print("Backend upload hash: " # hash # " phash: " # Nat32.toText(phash));
       return "File uploaded successfully!";
     }
   };
 
   // Public method to retrieve a list of all files for the current user
-  public shared (msg) func getFiles(): async [{ name: Text; size: Nat; fileType: Text; hash: Text; timestamp: Int }] {
+  public shared (msg) func getFiles(): async [{ name: Text; size: Nat; fileType: Text; hash: Text; phash: Nat32; timestamp: Int }] {
     // Iterate over all files in the user's files HashMap and return their metadata
     Iter.toArray(
       Iter.map(
         HashMap.vals(getUserFiles(msg.caller)), // Get all file values for the user
-        func(file: File): { name: Text; size: Nat; fileType: Text; hash: Text; timestamp: Int } {
+        func(file: File): { name: Text; size: Nat; fileType: Text; hash: Text; phash: Nat32; timestamp: Int } {
           {
             name = file.name;       // Return the file name
             size = file.totalSize;  // Return the file size
             fileType = file.fileType; // Return the file type (MIME type)
             hash = file.hash;       // Return the hash of the file content
+            phash = file.phash;         // Return the principal hash of the owner
             timestamp = file.timestamp;     // Return the upload timestamp
           };
         }
@@ -116,10 +121,8 @@ persistent actor Filevault {
     );
   };
 
- 
-
   // Verify if a file with the given hash exists for the current user
-  public shared (msg) func verifyFileByHash(hash: Text): async ?{ name: Text; fileType: Text; timestamp: Int; owner: Principal } {
+  public shared (msg) func verifyFileByHash(hash: Text): async ?{ name: Text; fileType: Text; timestamp: Int; owner: Principal; phash: Nat32 } {
     Debug.print("Backend verify hash: " # hash);
     switch (HashMap.get(globalRegistry, thash, hash)) {
       case null {
@@ -127,15 +130,47 @@ persistent actor Filevault {
         null;
       };
       case (?file) {
-        Debug.print("Match found for hash: " # hash);
+        Debug.print("Match found for hash: " # hash # " phash: " # Nat32.toText(file.phash));
         ?{
           name = file.name;
           fileType = file.fileType;
           timestamp = file.timestamp;
           owner = file.owner;
+          phash = file.phash;
         };
       };
     }
+  };
+
+  // Helper: Calculate Hamming distance between two Nat64 values
+  func hammingDistance(a: Nat64, b: Nat64): Nat {
+    var x = a ^ b; // XOR to get differing bits
+    var dist: Nat = 0;
+    while (x != 0) {
+      dist += Nat64.toNat(x & 1);
+      x >>= 1;
+    };
+    dist
+  };
+
+  // Find files with similar pHash (≥ 90%)
+  public shared (msg) func findFilesWithSimilarPhash(phash: Nat64): async [{ name: Text; hash: Text; phash: Nat64; owner: Principal; similarity: Nat }] {
+    var result: [{ name: Text; hash: Text; phash: Nat64; owner: Principal; similarity: Nat }] = [];
+    for ((_, file) in HashMap.entries(globalRegistry)) {
+      let filePhash: Nat64 = Nat64.fromNat(Nat32.toNat(file.phash));
+      let dist = hammingDistance(phash, filePhash);
+      let similarity = (64 - dist) * 100 / 64;
+      if (similarity >= 90) {
+        result := Array.append(result, [{
+          name = file.name;
+          hash = file.hash;
+          phash = filePhash;
+          owner = file.owner;
+          similarity = similarity;
+        }]);
+      }
+    };
+    result
   };
 
   // Converts a Nat32 to [Nat8] in big-endian order
