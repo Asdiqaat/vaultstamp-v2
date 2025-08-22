@@ -186,7 +186,7 @@ persistent actor Filevault {
   };
 
   public shared (msg) func sendDummyNotification(): async Text {
-    let alertMsg = "Welcome! This is a dummy notification for your account.";
+    let alertMsg = "Welcome! Login.";
     let currentAlerts = Option.get(HashMap.get(alerts, phash, msg.caller), []);
     let updatedAlerts = Array.append(currentAlerts, [alertMsg]);
     let _ = HashMap.put(alerts, phash, msg.caller, updatedAlerts);

@@ -76,18 +76,20 @@ It uses a clean, modern UI and integrates with ICP for secure, on-chain proof of
 ## 🗂️ Project Structure
 
 ```
-VaultStamp/
-├── src/
-│   ├── vaultstamp_backend/
-│   │   └── main.mo              # Motoko backend canister code
-│   └── vaultstamp_frontend/
-│       ├── index.html           # Main frontend HTML
-│       ├── style.css            # Main frontend CSS
-│       └── script.js            # Main frontend JS
-├── dfx.json                     # DFINITY project configuration (defines canisters)
-├── package.json                 # (If using npm for frontend tooling)
-├── README.md                    # Project documentation
-└── .gitignore                   # Files to ignore in Git
+vaultstamp-v2/
+├── backend/
+│   └── app.mo                  # Motoko backend canister code (with detailed comments)
+├── frontend/
+│   ├── public/
+│   │   └── questions.json      # Chatbot questions/categories
+│   ├── src/
+│   │   ├── App.jsx             # Main React frontend (with detailed comments)
+│   │   └── index.css           # Main frontend CSS (includes bell/chat icon styles)
+│   └── index.html              # Main frontend HTML
+├── dfx.json                    # DFINITY project configuration (defines canisters)
+├── package.json                # (If using npm for frontend tooling)
+├── README.md                   # Project documentation
+└── .gitignore                  # Files to ignore
 ```
 
 ---
